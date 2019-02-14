@@ -1,4 +1,3 @@
-import io.github.rybalkinsd.kohttp.ext.httpGet
 import io.javalin.Context
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -13,10 +12,10 @@ object StreamController {
             null -> ctx.status(400)
             in streamMap -> {
                 ctx.contentType("application/vnd.apple.mpegurl")
-                streamMap[id]?.generatePlaylist()?.let {
+                /*streamMap[id]?.generatePlaylist()?.let {
                     println(it)
                     ctx.result(it)
-                }
+                }*/
             }
             else -> ctx.status(404)
         }

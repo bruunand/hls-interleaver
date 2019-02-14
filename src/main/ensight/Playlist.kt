@@ -1,8 +1,13 @@
 import java.net.URL
 import java.util.*
+import java.util.regex.Pattern
 
-class Playlist(public val parent: ProxyStream, public val targetDuration: Number?, public val mediaSequence: Number?,
-               public val version: Number?, public val segments: Map<String, Number?>) {
+class Segment(val identifier: String, val time: Long, val duration: Number) : Comparable<Segment> {
+    override fun compareTo(other: Segment): Int = time.compareTo(other.time)
+}
+
+class Playlist(val parent: ProxyStream, val targetDuration: Number?, val mediaSequence: Number?, val version: Number?,
+               val segments: Map<String, Segment>) {
     companion object {
         private inline fun <reified T> parseDelimited(sequence: Iterator<String>, expectedHeader: String): Number? {
             sequence.next().split(':').let {
@@ -38,12 +43,15 @@ class Playlist(public val parent: ProxyStream, public val targetDuration: Number
 
             // Collect segments until iteration is empty
             val stubUrl = url.substring(0..url.lastIndexOf('/'))
-            val segments = TreeMap<String, Number?>()
+            val segments = TreeMap<String, Segment>()
             while (lineIterator.hasNext()) {
                 val length = parseDelimited<Float>(lineIterator, "#EXTINF")
-                val segmentName = "${parent.name}/${parent.addSegmentAlias(lineIterator.next(), stubUrl)}"
+                val resource = lineIterator.next()
+                val segmentName = "${parent.name}/${parent.addSegmentAlias(resource, stubUrl)}"
+                val pattern = Pattern.compile("-?\\d+")
+                println(pattern.matcher(resource).group())
 
-                segments[segmentName] = length
+                // segments[segmentName] = length
             }
 
             return Playlist(parent, targetDuration, mediaSequence, version, segments)
