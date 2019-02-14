@@ -9,5 +9,11 @@
         <module name="HLSInterleaver" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="ensight.HLSInterleaver.main" target="1.8" />
+      <module name="ensight.HLSInterleaver.test" target="1.8" />
+      <module name="HLSInterleaver.main" target="1.8" />
+      <module name="HLSInterleaver.test" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>

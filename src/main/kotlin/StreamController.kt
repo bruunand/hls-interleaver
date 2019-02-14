@@ -1,3 +1,4 @@
+import io.github.rybalkinsd.kohttp.ext.httpGet
 import io.javalin.Context
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -12,10 +13,9 @@ object StreamController {
             null -> ctx.status(400)
             in streamMap -> {
                 ctx.contentType("application/vnd.apple.mpegurl")
-                /*streamMap[id]?.generatePlaylist()?.let {
-                    println(it)
-                    ctx.result(it)
-                }*/
+                streamMap[id]?.let {
+                    ctx.result(it.internalPlaylist.synthesize())
+                }
             }
             else -> ctx.status(404)
         }
@@ -34,14 +34,12 @@ object StreamController {
                     when (segment) {
                         null -> ctx.status(404)
                         else -> {
-                            ctx.redirect(segment)
-                            /*ctx.contentType("application/octet-stream")
-                            val body = segment.httpGet().body()
-                            if (body == null) {
-                                println("Body is null")
-                            } else {
-                                ctx.result(body.byteStream())
-                            }*/
+                            // Either redirect or relay content
+                            // ctx.redirect(segment)
+                            ctx.contentType("application/octet-stream")
+                            segment.httpGet().body()?.let {
+                                ctx.result(it.byteStream())
+                            }
                         }
                     }
                 }
