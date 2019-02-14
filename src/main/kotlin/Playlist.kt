@@ -6,24 +6,23 @@ class Segment(val identifier: String, val time: Long, val duration: Number) : Co
     override fun compareTo(other: Segment): Int = time.compareTo(other.time)
 }
 
-class Playlist(var targetDuration: Number?, var mediaSequence: Number?, val version: Number?,
-               val segments: ArrayList<Segment>) {
-    private val maxLength = 15
+class Playlist(var targetDuration: Number?, private val version: Number?, val segments: ArrayList<Segment>) {
+    private val maxLength = 10
 
     fun synthesize(): String {
         val builder = StringBuilder()
         builder.appendln("#EXTM3U")
         builder.appendln("#EXT-X-VERSION:${this.version}")
         builder.appendln("#EXT-X-MEDIA-SEQUENCE:${this.segments.size}")
-        builder.appendln("#EXT-X-TARGETDURATION:${this.targetDuration}")
 
-        for (entry in this.segments.takeLast(this.maxLength)) {
+        val segments = this.segments.takeLast(this.maxLength)
+        val maxDuration = segments.map { it.duration.toDouble() }.max()?.let { Math.ceil(it).toInt() }
+        builder.appendln("#EXT-X-TARGETDURATION:$maxDuration")
+
+        for (entry in segments) {
             builder.appendln("#EXTINF:${entry.duration},")
             builder.appendln(entry.identifier)
         }
-
-
-        println("Synthesized: $builder")
 
         return builder.toString()
     }
@@ -42,7 +41,7 @@ class Playlist(var targetDuration: Number?, var mediaSequence: Number?, val vers
             }
         }
 
-        fun empty(version: Number = 2) = Playlist(0, 0, version, ArrayList())
+        fun empty(version: Number = 2) = Playlist(0, version, ArrayList())
 
         fun parse(parent: ProxyStream, url: HttpUrl, contents: String?): Playlist? {
             if (contents.isNullOrEmpty()) return null
@@ -55,8 +54,8 @@ class Playlist(var targetDuration: Number?, var mediaSequence: Number?, val vers
             // Parse version
             val version = parseDelimited<Int>(lineIterator.next(), "#EXT-X-VERSION") ?: return null
 
-            // Parse media sequence
-            val mediaSequence = parseDelimited<Int>(lineIterator.next(), "#EXT-X-MEDIA-SEQUENCE") ?: return null
+            // Skip media sequence
+            lineIterator.next()
 
             // Parse target duration
             val targetDuration = parseDelimited<Int>(lineIterator.next(), "#EXT-X-TARGETDURATION") ?: return null
@@ -83,7 +82,7 @@ class Playlist(var targetDuration: Number?, var mediaSequence: Number?, val vers
                 segments.add(Segment(segmentName, timestamp, duration))
             }
 
-            return Playlist(targetDuration, mediaSequence, version, segments)
+            return Playlist(targetDuration, version, segments)
         }
     }
 }

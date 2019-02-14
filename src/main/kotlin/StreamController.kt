@@ -1,5 +1,6 @@
 import io.github.rybalkinsd.kohttp.ext.httpGet
 import io.javalin.Context
+import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
@@ -36,9 +37,10 @@ object StreamController {
                         else -> {
                             // Either redirect or relay content
                             // ctx.redirect(segment)
+                            // TODO: Find a way to close byte stream after
                             ctx.contentType("application/octet-stream")
                             segment.httpGet().body()?.let {
-                                ctx.result(it.byteStream())
+                                ctx.result(ByteArrayInputStream(it.bytes()))
                             }
                         }
                     }

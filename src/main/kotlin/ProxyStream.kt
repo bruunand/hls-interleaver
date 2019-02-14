@@ -22,7 +22,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
     fun getSegmentURL(segment: String) = this.segmentAlias.getOrDefault(segment, null)
 
     private fun playlistRetriever() {
-        fixedRateTimer(this.name, false, 0L, 1000){
+        fixedRateTimer(this.name, false, 0L, 3000){
             val playlists = retrievePlaylists()
 
             if (!playlists.isEmpty()) {

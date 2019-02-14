@@ -5,3 +5,7 @@
 gradlew
 
 gradlew\.bat
+
+\.idea/
+
+target/classes/
