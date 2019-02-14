@@ -7,7 +7,7 @@ class Segment(val source: String, val identifier: String, val time: Long, val du
 }
 
 class Playlist(var targetDuration: Number?, private val version: Number?, val segments: ArrayList<Segment>) {
-    private val maxLength = 10
+    private val maxLength = 15
 
     fun synthesize(): String {
         val builder = StringBuilder()
