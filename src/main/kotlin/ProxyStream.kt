@@ -13,22 +13,23 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
     }
 
     fun addSegmentAlias(source: String, stubUrl: String): String {
-        segmentAlias[source] = "$stubUrl/$source"
+        val fullUrl = "$stubUrl/$source"
+        val hashCode = fullUrl.hashCode().toString()
+        segmentAlias[hashCode] = fullUrl
 
-        // Returns the alias to be used for retrieval
-        return source
+        return hashCode
     }
 
     fun getSegmentURL(segment: String) = this.segmentAlias.getOrDefault(segment, null)
 
     private fun playlistRetriever() {
-        fixedRateTimer(this.name, false, 0L, 500){
+        fixedRateTimer(this.name, false, 0L, 1000){
             val playlists = retrievePlaylists()
+            println("Playlists: ${playlists.size}")
 
             if (!playlists.isEmpty()) {
                 // Choose a random playlist to extract from
                 val playlistId = Random().nextInt(playlists.size)
-                println("Playlist: $playlistId")
                 val playlist = playlists[playlistId]
 
                 // Use whatever target duration the current playlist is using
