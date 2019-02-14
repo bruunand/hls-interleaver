@@ -9,7 +9,7 @@ fun main(args: Array<String>) {
     StreamController.addStream("main", args)
 
     // Start web application
-    val app = Javalin.create().start(8000)
+    val app = Javalin.create().enableCorsForOrigin("*").start(8000)
 
     app.routes {
         path("stream/:stream-id") {
