@@ -7,6 +7,8 @@ import kotlin.concurrent.fixedRateTimer
 class ProxyStream(val name: String, private val endpoints: Array<String>) {
     private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
     val internalPlaylist: Playlist = Playlist.empty()
+    var oldId: Int? = null
+    val rand = Random()
 
     init {
         playlistRetriever()
@@ -26,17 +28,19 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
             val playlists = retrievePlaylists()
 
             if (!playlists.isEmpty()) {
+                // TODO: This is a hackjob (notice !!)
+                if (oldId == null || playlists.size >= oldId!! || rand.nextBoolean()) {
+                    oldId = rand.nextInt(playlists.size)
+                }
                 // Choose a random playlist to extract from
-                val playlistId = Random().nextInt(playlists.size)
-                println("Playlist: $playlistId")
-                val playlist = playlists[playlistId]
+                println("Streamers: ${playlists.size}")
+                val playlist = playlists[oldId!!]
 
                 // Use whatever target duration the current playlist is using
                 internalPlaylist.targetDuration = playlist.targetDuration
 
                 // Add unseen segments that are newer than the newest segment
                 val newestTimestamp = internalPlaylist.segments.max()?.time ?: 0
-
                 internalPlaylist.segments.addAll(playlist.segments.filter { it.time > newestTimestamp })
             }
         }
