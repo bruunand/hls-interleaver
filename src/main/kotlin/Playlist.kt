@@ -2,7 +2,7 @@ import okhttp3.HttpUrl
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
-class Segment(val identifier: String, val time: Long, val duration: Number) : Comparable<Segment> {
+class Segment(val source: String, val identifier: String, val time: Long, val duration: Number) : Comparable<Segment> {
     override fun compareTo(other: Segment): Int = time.compareTo(other.time)
 }
 
@@ -15,11 +15,16 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
         builder.appendln("#EXT-X-VERSION:${this.version}")
         builder.appendln("#EXT-X-MEDIA-SEQUENCE:${this.segments.size}")
 
-        val segments = this.segments.takeLast(this.maxLength)
-        val maxDuration = segments.map { it.duration.toDouble() }.max()?.let { Math.ceil(it).toInt() }
+        val maxDuration = this.segments.map { it.duration.toDouble() }.max()?.let { Math.ceil(it).toInt() }
         builder.appendln("#EXT-X-TARGETDURATION:$maxDuration")
 
-        for (entry in segments) {
+        var previousSource: String? = null
+        for (entry in this.segments.takeLast(this.maxLength)) {
+            if (previousSource != entry.source) {
+                builder.appendln("#EXT-X-DISCONTINUITY")
+                previousSource = entry.source
+            }
+
             builder.appendln("#EXTINF:${entry.duration},")
             builder.appendln(entry.identifier)
         }
@@ -41,7 +46,7 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
             }
         }
 
-        fun empty(version: Number = 2) = Playlist(0, version, ArrayList())
+        fun empty(version: Number = 3) = Playlist(0, version, ArrayList())
 
         fun parse(parent: ProxyStream, url: HttpUrl, contents: String?): Playlist? {
             if (contents.isNullOrEmpty()) return null
@@ -79,7 +84,7 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
                     continue
                 }
 
-                segments.add(Segment(segmentName, timestamp, duration))
+                segments.add(Segment(url.toString().split('-').first(), segmentName, timestamp, duration))
             }
 
             return Playlist(targetDuration, version, segments)

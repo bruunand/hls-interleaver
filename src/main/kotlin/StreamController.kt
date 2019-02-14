@@ -39,8 +39,11 @@ object StreamController {
                             // ctx.redirect(segment)
                             // TODO: Find a way to close byte stream after
                             ctx.contentType("application/octet-stream")
-                            segment.httpGet().body()?.let {
-                                ctx.result(ByteArrayInputStream(it.bytes()))
+                            val request = segment.httpGet()
+                            try {
+                                request.body()?.let { ctx.result(ByteArrayInputStream(it.bytes())) }
+                            } finally {
+                                request.body()?.close()
                             }
                         }
                     }
