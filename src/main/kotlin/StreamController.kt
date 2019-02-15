@@ -55,6 +55,7 @@ object StreamController {
                                 ctx.contentType("application/octet-stream")
                             } ?: run {
                                 ctx.status(404)
+                                // TODO: Not working
                                 println("Failed to retrieve $segment")
                             }
                         }
