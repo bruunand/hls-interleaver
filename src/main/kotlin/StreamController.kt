@@ -53,6 +53,9 @@ object StreamController {
                             (result as? ByteArray)?.let {
                                 ctx.result(ByteArrayInputStream(it))
                                 ctx.contentType("application/octet-stream")
+                            } ?: run {
+                                ctx.status(404)
+                                println("Failed to retrieve $segment")
                             }
                         }
                     }
