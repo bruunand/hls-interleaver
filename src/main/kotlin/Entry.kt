@@ -8,8 +8,6 @@ import java.util.logging.Logger
 fun main(args: Array<String>) {
     if (args.isEmpty()) return
 
-    Logger.getLogger(OkHttpClient::class.simpleName).level = Level.FINE
-
     // Add main stream from args
     StreamController.addStream("main", args)
 
