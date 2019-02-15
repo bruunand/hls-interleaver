@@ -2,12 +2,13 @@ import okhttp3.HttpUrl
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
-class Segment(val source: String, val identifier: String, val time: Long, val duration: Number) : Comparable<Segment> {
+class Segment(val source: String, val identifier: String, val time: Long, val duration: Number,
+              val discontinuity: Boolean = false) : Comparable<Segment> {
     override fun compareTo(other: Segment): Int = time.compareTo(other.time)
 }
 
-class Playlist(var targetDuration: Number?, private val version: Number?, val segments: ArrayList<Segment>) {
-    private val maxLength = 5
+class Playlist(private val version: Number?, val segments: ArrayList<Segment>) {
+    private val maxLength = 10
 
     fun synthesize(): String {
         val builder = StringBuilder()
@@ -15,12 +16,12 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
         builder.appendln("#EXT-X-VERSION:${this.version}")
         builder.appendln("#EXT-X-MEDIA-SEQUENCE:${this.segments.size}")
 
-        val maxDuration = this.segments.map { it.duration.toDouble() }.max()?.let { Math.ceil(it).toInt() }
+        val maxDuration = this.segments.map { it.duration.toDouble() }.max()?.let { Math.ceil(it).toInt() } ?: 0
         builder.appendln("#EXT-X-TARGETDURATION:$maxDuration")
 
         var previousSource: String? = null
         for (entry in this.segments.takeLast(this.maxLength)) {
-            if (previousSource != entry.source) {
+            if (previousSource != entry.source || entry.discontinuity) {
                 builder.appendln("#EXT-X-DISCONTINUITY")
                 previousSource = entry.source
             }
@@ -33,10 +34,9 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
     }
 
     companion object {
-        private inline fun <reified T> parseDelimited(string: String, expectedHeader: String): Number? {
+        private inline fun <reified T : Number> parseDelimited(string: String, expectedHeader: String): Number? {
             string.split(':').let {
-                if (it.size != 2) return null
-                if (it[0] != expectedHeader) return null
+                if (it.size != 2 || it[0] != expectedHeader) return null
 
                 return when (T::class) {
                     Int::class -> it[1].toIntOrNull()
@@ -46,7 +46,7 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
             }
         }
 
-        fun empty(version: Number = 3) = Playlist(0, version, ArrayList())
+        fun empty(version: Number = 3) = Playlist(version, ArrayList())
 
         fun parse(parent: ProxyStream, url: HttpUrl, contents: String?): Playlist? {
             if (contents.isNullOrEmpty()) return null
@@ -59,35 +59,39 @@ class Playlist(var targetDuration: Number?, private val version: Number?, val se
             // Parse version
             val version = parseDelimited<Int>(lineIterator.next(), "#EXT-X-VERSION") ?: return null
 
-            // Skip media sequence
-            lineIterator.next()
-
-            // Parse target duration
-            val targetDuration = parseDelimited<Int>(lineIterator.next(), "#EXT-X-TARGETDURATION") ?: return null
+            // Skip media sequence and target duration
+            val mediaSequence = lineIterator.next()
+            val targetDuration = lineIterator.next()
 
             // Collect segments until iteration is empty
             val stubbedUrl = url.stub()
             val segments = ArrayList<Segment>()
+
             while (lineIterator.hasNext()) {
-                // Skip discontinuity
-                val next = lineIterator.next()
+                // Check if we need to prepend segment with discontinuity
+                var discontinuity = false
+                var next = lineIterator.next()
                 if (next == "#EXT-X-DISCONTINUITY") {
-                    continue
+                    discontinuity = true
+
+                    next = lineIterator.next()
                 }
+
+                // After reading discontinuity, iterator might be empty
+                if (!lineIterator.hasNext()) continue
 
                 val duration = parseDelimited<Float>(next, "#EXTINF")
                 val resource = lineIterator.next()
                 val segmentName = "${parent.name}/${parent.addSegmentAlias(resource, stubbedUrl)}"
                 val timestamp = resource.getTimestamp()
 
-                if (duration == null || timestamp == null) {
-                    continue
-                }
+                if (duration == null || timestamp == null) continue
 
-                segments.add(Segment(url.toString().split('-').first(), segmentName, timestamp, duration))
+                segments.add(Segment(url.toString().split('-').first(), segmentName, timestamp, duration,
+                        discontinuity))
             }
 
-            return Playlist(targetDuration, version, segments)
+            return Playlist(version, segments)
         }
     }
 }

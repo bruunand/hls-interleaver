@@ -1,9 +1,6 @@
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.get
 import io.javalin.apibuilder.ApiBuilder.path
-import okhttp3.OkHttpClient
-import java.util.logging.Level
-import java.util.logging.Logger
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) return

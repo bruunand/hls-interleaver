@@ -37,7 +37,6 @@ object StreamController {
                         else -> {
                             // Either redirect or relay content
                             // ctx.redirect(segment)
-                            // TODO: Find a way to close byte stream after
                             ctx.contentType("application/octet-stream")
                             val request = segment.httpGet()
                             try {
