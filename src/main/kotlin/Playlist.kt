@@ -63,7 +63,7 @@ class Playlist(private val version: Number?, val segments: ArrayList<Segment>) {
             val mediaSequence = lineIterator.next()
             val targetDuration = lineIterator.next()
 
-            // Collect segments until iteration is empty
+            // Collect segments until iterator is empty
             val stubbedUrl = url.stub()
             val segments = ArrayList<Segment>()
 
