@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
 object StreamController {
+    private val segmentCache = FIFOCache(300)
     private val streamMap: ConcurrentMap<String, ProxyStream> = ConcurrentHashMap()
 
     fun getStream(ctx: Context) {
@@ -35,14 +36,23 @@ object StreamController {
                     when (segment) {
                         null -> ctx.status(404)
                         else -> {
-                            // Either redirect or relay content
-                            // ctx.redirect(segment)
-                            ctx.contentType("application/octet-stream")
-                            val request = segment.httpGet()
-                            try {
-                                request.body()?.let { ctx.result(ByteArrayInputStream(it.bytes())) }
-                            } finally {
-                                request.body()?.close()
+                            val result = segmentCache[segment] ?: run {
+                                println("Cache miss for $segment")
+                                val request = segment.httpGet()
+                                try {
+                                    request.body()?.let {
+                                        val content = it.bytes()
+                                        segmentCache[segment] = content
+                                        content
+                                    }
+                                } finally {
+                                    request.body()?.close()
+                                }
+                            }
+
+                            (result as? ByteArray)?.let {
+                                ctx.result(ByteArrayInputStream(it))
+                                ctx.contentType("application/octet-stream")
                             }
                         }
                     }
