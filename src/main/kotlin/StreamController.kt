@@ -14,8 +14,8 @@ object StreamController {
         when (id) {
             null -> ctx.status(400)
             in streamMap -> {
-                ctx.contentType("application/vnd.apple.mpegurl")
                 streamMap[id]?.let {
+                    ctx.contentType("application/vnd.apple.mpegurl")
                     ctx.result(it.internalPlaylist.synthesize())
                 }
             }
