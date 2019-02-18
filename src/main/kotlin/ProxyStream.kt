@@ -34,7 +34,9 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
             val playlist = rand.choice(playlists)
 
             val newestTimestamp = internalPlaylist.segments.max()?.time ?: 0
-            val newestDuration = (internalPlaylist.segments.lastOrNull()?.duration as? Double)?.let { Math.round(1000 * it ) } ?: 0
+            val newestDuration = (internalPlaylist.segments.lastOrNull()?.duration as? Double)?.let {
+                Math.round(1000 * it )
+            } ?: 0
 
             // Add unseen segments that are newer than the newest segment
             internalPlaylist.segments.addAll(playlist.segments.filter { it.time >= newestTimestamp + newestDuration })
