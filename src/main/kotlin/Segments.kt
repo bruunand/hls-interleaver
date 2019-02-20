@@ -11,7 +11,7 @@ object Segments {
         return (cache[segmentUrl] as? ByteArray) ?: let {
             lock.withLock {
                 lookupMap[segmentUrl] ?: let {
-                    val deferred = retrieveSegment(segmentUrl)
+                    val deferred = request(segmentUrl)
                     lookupMap[segmentUrl] = deferred
                     deferred
                 }
@@ -19,7 +19,7 @@ object Segments {
         }
     }
 
-    private fun retrieveSegment(segmentUrl: String) = GlobalScope.async {
+    private fun request(segmentUrl: String) = GlobalScope.async {
         println("Request segment $segmentUrl")
         val retrieval = segmentUrl.httpGet()
 
