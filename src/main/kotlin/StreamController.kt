@@ -1,11 +1,11 @@
 import io.github.rybalkinsd.kohttp.ext.httpGet
 import io.javalin.Context
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
 object StreamController {
-    private val segmentCache = FIFOCache(300)
     private val streamMap: ConcurrentMap<String, ProxyStream> = ConcurrentHashMap()
 
     fun getStream(ctx: Context) {
@@ -36,27 +36,14 @@ object StreamController {
                     when (segment) {
                         null -> ctx.status(404)
                         else -> {
-                            val result = segmentCache[segment] ?: run {
-                                println("Cache miss for $segment")
-                                val request = segment.httpGet()
-                                try {
-                                    request.body()?.let {
-                                        val content = it.bytes()
-                                        segmentCache[segment] = content
-                                        content
-                                    }
-                                } finally {
-                                    request.body()?.close()
+                            runBlocking {
+                                Segments.retrieve(segment)?.let {
+                                    ctx.result(ByteArrayInputStream(it))
+                                    ctx.contentType("application/octet-stream")
+                                } ?: run {
+                                    ctx.status(404)
+                                    println("Failed to retrieve segment $segment")
                                 }
-                            }
-
-                            (result as? ByteArray)?.let {
-                                ctx.result(ByteArrayInputStream(it))
-                                ctx.contentType("application/octet-stream")
-                            } ?: run {
-                                ctx.status(404)
-                                // TODO: Not working
-                                println("Failed to retrieve $segment")
                             }
                         }
                     }

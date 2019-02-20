@@ -10,7 +10,9 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
     val internalPlaylist: Playlist = Playlist.empty()
 
     init {
-        playlistRetriever()
+        fixedRateTimer(this.name, false, 0L, 1000) {
+            updatePlaylist()
+        }
     }
 
     fun addSegmentAlias(source: String, stubUrl: String): String {
@@ -23,21 +25,21 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
 
     fun getSegmentURL(segment: String) = this.segmentAlias.getOrDefault(segment, null)
 
-    private fun playlistRetriever() {
-        fixedRateTimer(this.name, false, 0L, 1000){
-            val playlists = retrievePlaylists()
-            println("Playlists: ${playlists.size}")
+    private fun updatePlaylist() {
+        val playlists = retrievePlaylists()
+        println("Playlists: ${playlists.size}")
 
-            if (!playlists.isEmpty()) {
-                // Choose a random playlist to extract from
-                val playlist = rand.choice(playlists)
+        if (!playlists.isEmpty()) {
+            // Choose a random playlist to extract from
+            val playlist = rand.choice(playlists)
 
-                // Add unseen segments that are newer than the newest segment
-                val newestTimestamp = internalPlaylist.segments.max()?.time ?: 0
+            val newestTimestamp = internalPlaylist.segments.max()?.time ?: 0
+            val newestDuration = (internalPlaylist.segments.lastOrNull()?.duration as? Double)?.let {
+                Math.round(1000 * it )
+            } ?: 0
 
-                // TODO: If clips have the same timestamp across streams, they won't be added at the moment. However, using >= would include duplicates
-                internalPlaylist.segments.addAll(playlist.segments.filter { it.time > newestTimestamp })
-            }
+            // Add unseen segments that are newer than the newest segment
+            internalPlaylist.segments.addAll(playlist.segments.filter { it.time >= newestTimestamp + newestDuration })
         }
     }
 
