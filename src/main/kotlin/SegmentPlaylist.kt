@@ -1,7 +1,8 @@
-class Segment(val source: String, val identifier: String, val time: Long, val duration: Number,
+class Segment(val source: String, val identifier: String, private val time: Long, val duration: Number,
               val discontinuity: Boolean = false) : Comparable<Segment> {
     override fun compareTo(other: Segment): Int = time.compareTo(other.time)
 }
+
 class SegmentPlaylist(private val version: Number?, private val segments: ArrayList<Segment>) : Playlist() {
     private val maxLength = 10
 

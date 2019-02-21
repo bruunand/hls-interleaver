@@ -2,7 +2,6 @@ import okhttp3.HttpUrl
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 abstract class Playlist {
     abstract fun synthesize(): String
@@ -24,7 +23,7 @@ abstract class Playlist {
 
         fun parse(parent: ProxyStream, url: HttpUrl, contents: String?): Playlist? {
             if (contents.isNullOrEmpty()) return null
-            val lines = LinkedList(contents.split('\n'))
+            val lines = LinkedList(contents.split('\n').filter { !it.isEmpty() })
 
             // Parse header
             val header = lines.pop()
@@ -36,30 +35,40 @@ abstract class Playlist {
             // Following the line, we can determine whether the playlist is a master or segment playlist
             return when (lines.peek().split(':').firstOrNull()) {
                 "#EXT-X-MEDIA-SEQUENCE" -> parseSegmentPlaylist(version, parent, url, lines)
-                "#EXT-X-STREAM-INF" -> parseMasterPlaylist(version, parent, url, lines)
+                "#EXT-X-STREAM-INF" -> parseMasterPlaylist(version, url, lines)
                 else -> null
             }
         }
 
-        private fun parseMasterPlaylist(version: Number, parent: ProxyStream, url: HttpUrl,
-                                        lines: LinkedList<String>): MasterPlaylist? {
+        private fun parseMasterPlaylist(version: Number, url: HttpUrl, lines: LinkedList<String>): MasterPlaylist? {
             // Read playlist qualities until no more lines
+            val playlistDataMap = HashMap<PlaylistMetadata, String>()
             while (lines.isNotEmpty()) {
                 val descriptor = lines.popOrNull()?.split(':')?.getOrNull(1) ?: continue
                 val resource = lines.popOrNull() ?: continue
 
                 // Parse quality options from descriptor
                 val descriptions = descriptor.split(',')
-                val descriptionMap = HashMap<String, String>()
+                var programId: String? = null
+                var resolution: String? = null
+                var bandwidth: String? = null
                 for (description in descriptions) {
                     val nameValuePair = description.split('=')
 
-                    descriptionMap[nameValuePair.getOrNull(0) ?: continue] = nameValuePair.getOrNull(1) ?: continue
+                    val name = nameValuePair.getOrNull(0)
+                    when (name) {
+                        "PROGRAM-ID" -> programId = nameValuePair.getOrNull(1)
+                        "BANDWIDTH" -> bandwidth = nameValuePair.getOrNull(1)
+                        "RESOLUTION" -> resolution = nameValuePair.getOrNull(1)
+                        else -> println("Unknown property $name")
+                    }
                 }
 
-                // Associate full resource URL with options
-
+                val metadata = PlaylistMetadata(programId ?: continue,bandwidth ?: continue, resolution ?: continue)
+                playlistDataMap[metadata] = "${url.stub()}/$resource"
             }
+
+            return MasterPlaylist(version, playlistDataMap)
         }
 
         private fun parseSegmentPlaylist(version: Number, parent: ProxyStream, url: HttpUrl,
