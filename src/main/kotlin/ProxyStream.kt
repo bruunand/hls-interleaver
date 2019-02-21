@@ -27,7 +27,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
 
     private fun updatePlaylist() {
         val playlists = retrievePlaylists()
-        println("Playlists: ${playlists.size}")
+        /*println("Playlists: ${playlists.size}")
 
         if (!playlists.isEmpty()) {
             // Choose a random playlist to extract from
@@ -40,7 +40,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
 
             // Add unseen segments that are newer than the newest segment
             internalPlaylist.segments.addAll(playlist.segments.filter { it.time >= newestTimestamp + newestDuration })
-        }
+        }*/
     }
 
     private fun retrieveRemotes() = runBlocking {

@@ -1,37 +1,11 @@
 import okhttp3.HttpUrl
+import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
-class Segment(val source: String, val identifier: String, val time: Long, val duration: Number,
-              val discontinuity: Boolean = false) : Comparable<Segment> {
-    override fun compareTo(other: Segment): Int = time.compareTo(other.time)
-}
-
-class Playlist(private val version: Number?, val segments: ArrayList<Segment>) {
-    private val maxLength = 10
-
-    fun synthesize(): String {
-        val builder = StringBuilder()
-        builder.appendln("#EXTM3U")
-        builder.appendln("#EXT-X-VERSION:${this.version}")
-        builder.appendln("#EXT-X-MEDIA-SEQUENCE:${this.segments.size}")
-
-        val maxDuration = this.segments.map { it.duration.toDouble() }.max()?.let { Math.ceil(it).toInt() } ?: 0
-        builder.appendln("#EXT-X-TARGETDURATION:$maxDuration")
-
-        var previousSource: String? = null
-        for (entry in this.segments.takeLast(this.maxLength)) {
-            if (previousSource != entry.source || entry.discontinuity) {
-                builder.appendln("#EXT-X-DISCONTINUITY")
-                previousSource = entry.source
-            }
-
-            builder.appendln("#EXTINF:${entry.duration},")
-            builder.appendln(entry.identifier)
-        }
-
-        return builder.toString()
-    }
+abstract class Playlist {
+    abstract fun synthesize(): String
 
     companion object {
         private inline fun <reified T : Number> parseDelimited(string: String, expectedHeader: String): Number? {
@@ -46,55 +20,85 @@ class Playlist(private val version: Number?, val segments: ArrayList<Segment>) {
             }
         }
 
-        fun empty(version: Number = 3) = Playlist(version, ArrayList())
+        fun empty(version: Number = 3) = SegmentPlaylist(version, ArrayList())
 
         fun parse(parent: ProxyStream, url: HttpUrl, contents: String?): Playlist? {
             if (contents.isNullOrEmpty()) return null
-            val lineIterator = contents.split('\n').filter { !it.isEmpty() }.iterator()
+            val lines = LinkedList(contents.split('\n'))
 
             // Parse header
-            val header = lineIterator.next()
+            val header = lines.pop()
             if (header != "#EXTM3U") return null
 
             // Parse version
-            val version = parseDelimited<Int>(lineIterator.next(), "#EXT-X-VERSION") ?: return null
+            val version = parseDelimited<Int>(lines.pop(), "#EXT-X-VERSION") ?: return null
 
+            // Following the line, we can determine whether the playlist is a master or segment playlist
+            return when (lines.peek().split(':').firstOrNull()) {
+                "#EXT-X-MEDIA-SEQUENCE" -> parseSegmentPlaylist(version, parent, url, lines)
+                "#EXT-X-STREAM-INF" -> parseMasterPlaylist(version, parent, url, lines)
+                else -> null
+            }
+        }
+
+        private fun parseMasterPlaylist(version: Number, parent: ProxyStream, url: HttpUrl,
+                                        lines: LinkedList<String>): MasterPlaylist? {
+            // Read playlist qualities until no more lines
+            while (lines.isNotEmpty()) {
+                val descriptor = lines.popOrNull()?.split(':')?.getOrNull(1) ?: continue
+                val resource = lines.popOrNull() ?: continue
+
+                // Parse quality options from descriptor
+                val descriptions = descriptor.split(',')
+                val descriptionMap = HashMap<String, String>()
+                for (description in descriptions) {
+                    val nameValuePair = description.split('=')
+
+                    descriptionMap[nameValuePair.getOrNull(0) ?: continue] = nameValuePair.getOrNull(1) ?: continue
+                }
+
+                // Associate full resource URL with options
+
+            }
+        }
+
+        private fun parseSegmentPlaylist(version: Number, parent: ProxyStream, url: HttpUrl,
+                                         lines: LinkedList<String>): SegmentPlaylist? {
             // Skip media sequence and target duration
-            val mediaSequence = lineIterator.next()
-            val targetDuration = lineIterator.next()
+            (1..2).map { lines.pop() }
 
             // Collect segments until iterator is empty
             val stubbedUrl = url.stub()
             val segments = ArrayList<Segment>()
 
-            while (lineIterator.hasNext()) {
+            while (lines.isNotEmpty()) {
                 // Check if we need to prepend segment with discontinuity
                 var discontinuity = false
-                var next = lineIterator.next()
+                var next = lines.popOrNull() ?: continue
                 if (next == "#EXT-X-DISCONTINUITY") {
                     discontinuity = true
 
-                    next = lineIterator.next()
+                    next = lines.pop()
                 }
 
                 // After reading discontinuity, iterator might be empty
-                if (!lineIterator.hasNext()) continue
+                if (lines.isEmpty()) continue
 
-                val duration = parseDelimited<Float>(next, "#EXTINF")
-                val resource = lineIterator.next()
+                val duration = parseDelimited<Float>(next, "#EXTINF") ?: continue
+                val resource = lines.popOrNull() ?: continue
                 val segmentName = "${parent.name}/${parent.addSegmentAlias(resource, stubbedUrl)}"
-                val timestamp = resource.getTimestamp()
+                val timestamp = resource.getTimestamp() ?: continue
 
-                if (duration == null || timestamp == null) continue
-
-                segments.add(Segment(url.toString().split('-').first(), segmentName, timestamp, duration,
+                segments.add(Segment(url.toString(), segmentName, timestamp, duration,
                         discontinuity))
             }
 
-            return Playlist(version, segments)
+            return SegmentPlaylist(version, segments)
         }
     }
 }
+
+private fun <E> LinkedList<E>.popOrNull() = if (this.isEmpty()) null else this.pop()
 
 private fun String.getTimestamp(): Long? {
     val pattern = Pattern.compile("\\d+")
