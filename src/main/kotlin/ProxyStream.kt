@@ -25,7 +25,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
 
     private fun addSubplaylist(metadata: PlaylistMetadata, playlist: SegmentPlaylist) {
         segmentLists[metadata] = playlist
-        metadataAliasMap[metadata.hashCode().toString()] = metadata
+        metadataAliasMap[metadata.toString()] = metadata
     }
 
     fun getSubplaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
@@ -47,7 +47,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
 
         for ((key, value) in metadataAliasMap) {
             builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${value.programId},BANDWIDTH=${value.bandwidth},RESOLUTION=${value.resolution}")
-            builder.appendln("main/subplaylist/${key}")
+            builder.appendln("${this.name}/${key}")
         }
 
         return builder.toString()
