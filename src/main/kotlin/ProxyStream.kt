@@ -6,16 +6,29 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.fixedRateTimer
 
 class ProxyStream(val name: String, private val endpoints: Array<String>) : Playlist() {
-    // Keep a mapping from distinct playlist metadata to the associated internal playlists
-    private val segmentLists: ConcurrentHashMap<PlaylistMetadata, SegmentPlaylist> = ConcurrentHashMap()
-    private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
     private val rand: Random = Random()
+
+    // Keep a mapping from distinct playlist metadata to the associated internal playlists7
+    private val segmentLists: ConcurrentHashMap<PlaylistMetadata, SegmentPlaylist> = ConcurrentHashMap()
+
+    // Furthermore, a mapping is used from string identifiers to playlist metadata
+    private val metadataAliasMap: ConcurrentHashMap<String, PlaylistMetadata> = ConcurrentHashMap()
+
+    // A mapping is used from string identifiers to full segment URLs on the origin server
+    private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
 
     init {
         fixedRateTimer(this.name, false, 0L, 1000) {
             updatePlaylist()
         }
     }
+
+    private fun addSubplaylist(metadata: PlaylistMetadata, playlist: SegmentPlaylist) {
+        segmentLists[metadata] = playlist
+        metadataAliasMap[metadata.hashCode().toString()] = metadata
+    }
+
+    fun getSubplaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
 
     fun addSegmentAlias(source: String, stubUrl: String): String {
         val fullUrl = "$stubUrl/$source"
@@ -32,9 +45,9 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
         builder.appendln("#EXTM3U")
         builder.appendln("#EXT-X-VERSION:3")
 
-        for (key in segmentLists.keys()) {
-            builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${key.programId},BANDWIDTH=${key.bandwidth},RESOLUTION=${key.resolution}")
-            // TODO: Append some alias
+        for ((key, value) in metadataAliasMap) {
+            builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${value.programId},BANDWIDTH=${value.bandwidth},RESOLUTION=${value.resolution}")
+            builder.appendln("main/subplaylist/${key}")
         }
 
         return builder.toString()
@@ -55,7 +68,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
                 for ((key, value) in currentPlaylist.metadataMap) {
                     // If metadata is unseen, add the segment URL to an internal mapping
                     if (key !in segmentLists) {
-                        this.segmentLists[key] = SegmentPlaylist.empty()
+                        addSubplaylist(key, SegmentPlaylist.empty())
                     }
 
                     // Read segments from this URL and add new segments
