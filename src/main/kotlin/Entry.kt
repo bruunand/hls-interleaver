@@ -14,8 +14,11 @@ fun main(args: Array<String>) {
     app.routes {
         path("stream/:stream-id") {
             get(StreamController::getStream)
-            path(":segment-id") {
-                get(StreamController::getSegment)
+            path(":playlist-id") {
+                get(StreamController::getSubplaylist)
+                path(":segment-id") {
+                    get(StreamController::getSegment)
+                }
             }
         }
     }
