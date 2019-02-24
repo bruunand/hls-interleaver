@@ -30,9 +30,10 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
 
     fun getSubplaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
 
+    var i = 0;
     fun addSegmentAlias(source: String, stubUrl: String): String {
         val fullUrl = "$stubUrl/$source"
-        val hashCode = fullUrl.hashCode().toString()
+        val hashCode = source // fullUrl.hashCode().toString()
         segmentAlias[hashCode] = fullUrl
 
         return hashCode
@@ -67,7 +68,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
             is MasterPlaylist -> {
                 for ((key, value) in currentPlaylist.metadataMap) {
                     // If metadata is unseen, add the segment URL to an internal mapping
-                    if (key !in segmentLists) {
+                    if (!segmentLists.containsKey(key)) {
                         addSubplaylist(key, SegmentPlaylist.empty())
                     }
 

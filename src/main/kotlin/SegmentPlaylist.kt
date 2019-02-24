@@ -3,8 +3,8 @@ class Segment(val source: String, val identifier: String, val time: Long, val du
     override fun compareTo(other: Segment): Int = time.compareTo(other.time)
 }
 
-class SegmentPlaylist(val version: Number?, val segments: ArrayList<Segment>) : Playlist() {
-    private val maxLength = 10
+class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segment>) : Playlist() {
+    private val maxLength = 5
 
     override fun synthesize(): String {
         val builder = StringBuilder()
@@ -17,14 +17,18 @@ class SegmentPlaylist(val version: Number?, val segments: ArrayList<Segment>) : 
 
         var previousSource: String? = null
         for (entry in this.segments.takeLast(this.maxLength)) {
-            if (previousSource != entry.source || entry.discontinuity) {
+            if ((previousSource != null && previousSource != entry.source) || entry.discontinuity) {
+                // TODO: Maybe optimal to mark the first ever segment with discontinuity
                 builder.appendln("#EXT-X-DISCONTINUITY")
-                previousSource = entry.source
             }
 
             builder.appendln("#EXTINF:${entry.duration},")
             builder.appendln(entry.identifier)
+
+            previousSource = entry.source
         }
+
+        println(builder)
 
         return builder.toString()
     }
@@ -32,12 +36,14 @@ class SegmentPlaylist(val version: Number?, val segments: ArrayList<Segment>) : 
     // Add new segments to this playlists, i.e. ones with timestamps after the newest clip
     fun addNew(segments: List<Segment>) {
         val newestTimestamp = this.segments.max()?.time ?: 0
-        /*val newestDuration = (this.segments.lastOrNull()?.duration as? Double)?.let {
-            Math.round(1000 * it )
-        } ?: 0*/
+        val newestDuration = (this.segments.lastOrNull()?.duration as? Float)?.let {
+            Math.round(500 * Math.floor(it.toDouble()) ) // Only use half of the actual length
+        } ?: 0
 
         // Add unseen segments that are newer than the newest segment
-        this.segments.addAll(segments.filter { it.time > newestTimestamp })
+        val newSegments = segments.filter { it.time > newestTimestamp + newestDuration }
+        println("${newSegments.size} new segments")
+        this.segments.addAll(newSegments)
     }
 
     companion object {
