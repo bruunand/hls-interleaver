@@ -29,11 +29,10 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
     }
 
     fun getSubplaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
-
-    var i = 0;
+    
     fun addSegmentAlias(source: String, stubUrl: String): String {
         val fullUrl = "$stubUrl/$source"
-        val hashCode = source // fullUrl.hashCode().toString()
+        val hashCode = fullUrl.hashCode().toString()
         segmentAlias[hashCode] = fullUrl
 
         return hashCode
@@ -77,10 +76,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
                     this.segmentLists[key]?.addNew(playlist.segments)
                 }
             }
-            is SegmentPlaylist -> {
-                // TODO: Legacy support
-            }
-            else -> println("Unknown playlist type $currentPlaylist")
+            else -> println("Unknown playlist type ${currentPlaylist::class}")
         }
     }
 
@@ -96,6 +92,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
 
     private fun retrieveRemotes() = runBlocking {
         val futures = endpoints.map { it.asyncHttpGet() }
+        // TODO: Find out if the async process is started as soon as it is called
         futures.map { it.await() }
     }
 
