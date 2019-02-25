@@ -18,7 +18,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
     private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
 
     init {
-        fixedRateTimer(this.name, false, 0L, 1000) {
+        fixedRateTimer(this.name, false, 0L, 2000) {
             updatePlaylist()
         }
     }
@@ -62,7 +62,9 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
         }
 
         // Use the currently selected playlist
-        val currentPlaylist = rand.choice(playlists)
+        val time = (System.currentTimeMillis() / 1000) % 15
+        println("Time: $time")
+        val currentPlaylist = playlists[if (time >= 7) 0 else 1]
         when (currentPlaylist) {
             is MasterPlaylist -> {
                 for ((key, value) in currentPlaylist.metadataMap) {

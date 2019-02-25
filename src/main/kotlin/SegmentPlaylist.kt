@@ -37,7 +37,7 @@ class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segm
     fun addNew(segments: List<Segment>) {
         val newestTimestamp = this.segments.max()?.time ?: 0
         val newestDuration = (this.segments.lastOrNull()?.duration as? Float)?.let {
-            Math.round(500 * Math.floor(it.toDouble()) ) // Only use half of the actual length
+            Math.round(500 * Math.floor(it.toDouble()) )
         } ?: 0
 
         // Add unseen segments that are newer than the newest segment
