@@ -42,7 +42,7 @@ class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segm
 
         // Add unseen segments that are newer than the newest segment
         val newSegments = segments.filter { it.time > newestTimestamp + newestDuration }
-        println("${newSegments.size} new segments")
+        // println("${newSegments.size} new segments")
         this.segments.addAll(newSegments)
     }
 
