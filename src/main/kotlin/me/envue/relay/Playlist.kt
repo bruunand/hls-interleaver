@@ -1,3 +1,5 @@
+package me.envue.relay
+
 import okhttp3.HttpUrl
 import java.util.*
 import java.util.regex.Pattern

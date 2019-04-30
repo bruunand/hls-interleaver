@@ -1,3 +1,5 @@
+package me.envue.relay
+
 import io.github.rybalkinsd.kohttp.ext.asyncHttpGet
 import io.github.rybalkinsd.kohttp.ext.httpGet
 import kotlinx.coroutines.runBlocking

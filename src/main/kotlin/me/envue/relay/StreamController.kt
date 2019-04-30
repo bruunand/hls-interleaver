@@ -1,3 +1,5 @@
+package me.envue.relay
+
 import io.javalin.Context
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
@@ -6,6 +8,10 @@ import java.util.concurrent.ConcurrentMap
 
 object StreamController {
     private val streamMap: ConcurrentMap<String, ProxyStream> = ConcurrentHashMap()
+
+    fun getStreamList(ctx: Context) {
+        ctx.result(streamMap.keys.joinToString(", "))
+    }
 
     fun createStream(ctx: Context) {
         val streamId: String? = ctx.pathParam("stream-id")
@@ -17,7 +23,7 @@ object StreamController {
                 if (streamUrls.isEmpty()) {
                     ctx.status(400)
                 } else {
-                    this.addStream(streamId, streamUrls)
+                    addStream(streamId, streamUrls)
                     ctx.status(200)
                 }
             }
@@ -96,6 +102,6 @@ object StreamController {
     }
 
     fun addStream(name: String, endpoints: List<String>) {
-        this.streamMap[name] = ProxyStream(name, endpoints)
+        streamMap[name] = ProxyStream(name, endpoints)
     }
 }

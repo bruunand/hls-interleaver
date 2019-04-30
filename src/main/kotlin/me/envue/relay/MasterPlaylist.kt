@@ -1,3 +1,5 @@
+package me.envue.relay
+
 data class PlaylistMetadata(val programId: String, val bandwidth: String, val resolution: String) {
     override fun toString(): String = "$resolution-${bandwidth.toIntOrNull()?.let {it / 1024}}"
 }
