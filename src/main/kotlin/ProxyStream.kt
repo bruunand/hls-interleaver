@@ -3,9 +3,8 @@ import io.github.rybalkinsd.kohttp.ext.httpGet
 import kotlinx.coroutines.runBlocking
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.fixedRateTimer
 
-class ProxyStream(val name: String, private val endpoints: Array<String>) : Playlist() {
+class ProxyStream(val name: String, private val endpoints: List<String>) : Playlist() {
     private val rand: Random = Random()
 
     // Keep a mapping from distinct playlist metadata to the associated internal playlists7
@@ -17,18 +16,14 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
     // A mapping is used from string identifiers to full segment URLs on the origin server
     private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
 
-    init {
-        fixedRateTimer(this.name, false, 0L, 1000) {
-            updatePlaylist()
-        }
-    }
+    private var lastUpdate: Long = 0
 
-    private fun addSubplaylist(metadata: PlaylistMetadata, playlist: SegmentPlaylist) {
+    private fun addSubPlaylist(metadata: PlaylistMetadata, playlist: SegmentPlaylist) {
         segmentLists[metadata] = playlist
         metadataAliasMap[metadata.toString()] = metadata
     }
 
-    fun getSubplaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
+    fun getSubPlaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
     
     fun addSegmentAlias(source: String, stubUrl: String): String {
         val fullUrl = "$stubUrl/$source"
@@ -47,13 +42,18 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
 
         for ((key, value) in metadataAliasMap) {
             builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${value.programId},BANDWIDTH=${value.bandwidth},RESOLUTION=${value.resolution}")
-            builder.appendln("${this.name}/${key}")
+            builder.appendln("${this.name}/$key")
         }
 
         return builder.toString()
     }
 
-    private fun updatePlaylist() {
+    fun updatePlaylist() {
+        // Enforce a delay between updates
+        if (System.currentTimeMillis() - lastUpdate < 100) {
+            return
+        }
+
         val playlists = retrievePlaylists()
 
         // Do nothing if there are no playlists
@@ -61,15 +61,13 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
             return
         }
 
-        // Use the currently selected playlist
-        val time = (System.currentTimeMillis() / 1000) % 15
         val currentPlaylist = this.rand.choice(playlists)
         when (currentPlaylist) {
             is MasterPlaylist -> {
                 for ((key, value) in currentPlaylist.metadataMap) {
                     // If metadata is unseen, add the segment URL to an internal mapping
                     if (!segmentLists.containsKey(key)) {
-                        addSubplaylist(key, SegmentPlaylist.empty())
+                        addSubPlaylist(key, SegmentPlaylist.empty())
                     }
 
                     // Read segments from this URL and add new segments
@@ -79,6 +77,8 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) : Play
             }
             else -> println("Unknown playlist type ${currentPlaylist::class}")
         }
+
+        lastUpdate = System.currentTimeMillis()
     }
 
     private fun retrieveSegmentPlaylist(url: String): SegmentPlaylist? {

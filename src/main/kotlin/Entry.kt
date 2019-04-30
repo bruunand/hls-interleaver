@@ -1,12 +1,11 @@
 import io.javalin.Javalin
-import io.javalin.apibuilder.ApiBuilder.get
-import io.javalin.apibuilder.ApiBuilder.path
+import io.javalin.apibuilder.ApiBuilder.*
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) return
 
     // Add main stream from args
-    StreamController.addStream("main", args)
+    // StreamController.addStream("main", args)
 
     // Start web application
     val app = Javalin.create().enableCorsForOrigin("*").start(8000)
@@ -14,11 +13,13 @@ fun main(args: Array<String>) {
     app.routes {
         path("stream/:stream-id") {
             get(StreamController::getStream)
+            post(StreamController::createStream)
+            delete(StreamController::deleteStream)
             path(":playlist-id") {
-                get(StreamController::getSubplaylist)
-                path(":segment-id") {
-                    get(StreamController::getSegment)
-                }
+                get(StreamController::getSubPlaylist)
+            }
+            path("segment/:segment-id") {
+                get(StreamController::getSegment)
             }
         }
     }

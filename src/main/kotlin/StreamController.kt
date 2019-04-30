@@ -7,6 +7,37 @@ import java.util.concurrent.ConcurrentMap
 object StreamController {
     private val streamMap: ConcurrentMap<String, ProxyStream> = ConcurrentHashMap()
 
+    fun createStream(ctx: Context) {
+        val streamId: String? = ctx.pathParam("stream-id")
+
+        when (streamId) {
+            null -> ctx.status(400)
+            !in streamMap -> {
+                val streamUrls = ctx.formParams("stream-urls")
+                if (streamUrls.isEmpty()) {
+                    ctx.status(400)
+                } else {
+                    this.addStream(streamId, streamUrls)
+                    ctx.status(200)
+                }
+            }
+            else -> ctx.status(400)
+        }
+    }
+
+    fun deleteStream(ctx: Context) {
+        val streamId: String? = ctx.pathParam("stream-id")
+
+        when (streamId) {
+            null -> ctx.status(400)
+            in streamMap -> {
+                streamMap.remove(streamId)
+                ctx.status(200)
+            }
+            else -> ctx.status(404)
+        }
+    }
+
     fun getStream(ctx: Context) {
         val streamId: String? = ctx.pathParam("stream-id")
 
@@ -14,6 +45,7 @@ object StreamController {
             null -> ctx.status(400)
             in streamMap -> {
                 streamMap[streamId]?.let {
+                    it.updatePlaylist()
                     ctx.contentType("application/vnd.apple.mpegurl")
                     ctx.result(it.synthesize())
                 }
@@ -22,15 +54,16 @@ object StreamController {
         }
     }
 
-    fun getSubplaylist(ctx: Context) {
+    fun getSubPlaylist(ctx: Context) {
         val streamId: String = ctx.pathParam("stream-id")
         val playlistId: String = ctx.pathParam("playlist-id")
 
         when (streamId) {
             in streamMap -> {
-                val subplaylist = streamMap[streamId]?.getSubplaylist(playlistId) ?: return
+                streamMap[streamId]?.updatePlaylist()
+                val subPlaylist = streamMap[streamId]?.getSubPlaylist(playlistId) ?: return
                 ctx.contentType("application/vnd.apple.mpegurl")
-                ctx.result(subplaylist)
+                ctx.result(subPlaylist)
             }
             else -> ctx.status(404)
         }
@@ -62,7 +95,7 @@ object StreamController {
         }
     }
 
-    fun addStream(name: String, endpoints: Array<String>) {
+    fun addStream(name: String, endpoints: List<String>) {
         this.streamMap[name] = ProxyStream(name, endpoints)
     }
 }

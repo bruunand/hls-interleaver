@@ -28,8 +28,6 @@ class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segm
             previousSource = entry.source
         }
 
-        println(builder)
-
         return builder.toString()
     }
 

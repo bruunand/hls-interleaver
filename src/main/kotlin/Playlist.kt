@@ -93,7 +93,7 @@ abstract class Playlist {
 
                 val duration = parseDelimited<Float>(next, "#EXTINF") ?: continue
                 val resource = lines.popOrNull() ?: continue
-                val segmentName = "${parent.name}/${parent.addSegmentAlias(resource, stubbedUrl)}"
+                val segmentName = "segment/${parent.addSegmentAlias(resource, stubbedUrl)}"
                 val timestamp = resource.getTimestamp() ?: continue
 
                 segments.add(Segment(url.toString(), segmentName, timestamp, duration,
