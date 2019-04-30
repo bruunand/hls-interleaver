@@ -1,5 +1,3 @@
-package me.envue.relay
-
 import io.javalin.Context
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
@@ -19,7 +17,7 @@ object StreamController {
         when (streamId) {
             null -> ctx.status(400)
             !in streamMap -> {
-                val streamUrls = ctx.formParams("stream-urls")
+                val streamUrls = ctx.formParams("stream_url")
                 if (streamUrls.isEmpty()) {
                     ctx.status(400)
                 } else {

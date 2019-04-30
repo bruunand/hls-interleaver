@@ -1,5 +1,3 @@
-package me.envue.relay
-
 import io.github.rybalkinsd.kohttp.ext.asyncHttpGet
 import io.github.rybalkinsd.kohttp.ext.httpGet
 import kotlinx.coroutines.runBlocking
@@ -87,7 +85,8 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
         val response = url.httpGet()
 
         try {
-            return Playlist.parse(this, response.request().url(), response.body()?.string() ?: return null) as? SegmentPlaylist
+            return parse(this, response.request().url(), response.body()?.string()
+                    ?: return null) as? SegmentPlaylist
         } finally {
             response.body()?.close()
         }
@@ -104,7 +103,7 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
         return remotes.mapNotNull {
             try {
                 when (it.code()) {
-                    200 -> Playlist.parse(this, it.request().url(), it.body()?.string())
+                    200 -> parse(this, it.request().url(), it.body()?.string())
                     else -> null
                 }
             } finally {

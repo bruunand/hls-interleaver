@@ -1,5 +1,3 @@
-package me.envue.relay
-
 import okhttp3.HttpUrl
 import java.util.*
 import java.util.regex.Pattern
@@ -64,7 +62,7 @@ abstract class Playlist {
                     }
                 }
 
-                val metadata = PlaylistMetadata(programId ?: continue,bandwidth ?: continue, resolution ?: continue)
+                val metadata = PlaylistMetadata(programId ?: continue, bandwidth ?: continue, resolution ?: continue)
                 playlistDataMap[metadata] = "${url.stub()}/$resource"
             }
 

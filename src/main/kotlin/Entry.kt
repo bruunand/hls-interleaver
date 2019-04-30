@@ -1,14 +1,21 @@
-package me.envue.relay
-
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.*
+import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.ServerConnector
 
 fun main(args: Array<String>) {
     // Start web application
-    val app = Javalin.create().enableCorsForOrigin("*").start(7000)
+    val app= Javalin.create().server{
+        Server().apply {
+            connectors = arrayOf(ServerConnector(this).apply {
+                this.host = "relay"
+                this.port = 7000
+            })
+        }
+    }.start()
 
     app.routes {
-        path("stream") {
+        path("relay") {
             get(StreamController::getStreamList)
             path(":stream-id") {
                 get(StreamController::getStream)

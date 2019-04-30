@@ -1,6 +1,3 @@
-package me.envue.relay
-
-import FIFOCache
 import io.github.rybalkinsd.kohttp.ext.httpGet
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
