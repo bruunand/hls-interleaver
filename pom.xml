@@ -125,8 +125,8 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <repository>envue.me/relay</repository>
-                    <tag>${project.version}</tag>
+                    <repository>envue/relay</repository>
+                    <tag>latest</tag>
                     <buildArgs>
                         <JAR_FILE>${project.build.finalName}-shaded.jar</JAR_FILE>
                     </buildArgs>
