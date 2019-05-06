@@ -69,13 +69,15 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
         when (currentPlaylist) {
             is MasterPlaylist -> {
                 for ((key, value) in currentPlaylist.metadataMap) {
-                    // If metadata is unseen, add the segment URL to an internal mapping
+                    // Retrieve sub-playlists from this playlist
+                    val playlist = this.retrieveSegmentPlaylist(value) ?: continue
+
+                    // Add sub-playlist if it does not exist
                     if (!segmentLists.containsKey(key)) {
                         addSubPlaylist(key, SegmentPlaylist.empty())
                     }
 
-                    // Read segments from this URL and add new segments
-                    val playlist = this.retrieveSegmentPlaylist(value) ?: return
+                    // Add new segments
                     this.segmentLists[key]?.addNew(playlist.segments)
                 }
             }
