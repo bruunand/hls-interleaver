@@ -2,6 +2,7 @@ import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.*
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
+import java.util.*
 
 fun main(args: Array<String>) {
     // Start web application
@@ -18,6 +19,9 @@ fun main(args: Array<String>) {
         path("relay") {
             get(StreamController::getStreamList)
             path(":stream-id") {
+                path("thumbnail") {
+                    get(StreamController::getThumbnail)
+                }
                 get(StreamController::getStream)
                 post(StreamController::createStream)
                 delete(StreamController::deleteStream)

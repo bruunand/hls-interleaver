@@ -24,7 +24,11 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
     }
 
     fun getSubPlaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
-    
+
+    fun getInternalUri(): String {
+        return rand.choice(this.endpoints)
+    }
+
     fun addSegmentAlias(source: String, stubUrl: String): String {
         val fullUrl = "$stubUrl/$source"
         val hashCode = fullUrl.hashCode().toString()
@@ -41,7 +45,7 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
         builder.appendln("#EXT-X-VERSION:3")
 
         for ((key, value) in metadataAliasMap) {
-            builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${value.programId},BANDWIDTH=${value.bandwidth},RESOLUTION=${value.resolution}")
+            builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${value.programId},BANDWIDTH=${value.bandwidth}")
             builder.appendln("${this.name}/$key")
         }
 

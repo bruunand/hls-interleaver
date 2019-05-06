@@ -1,3 +1,6 @@
+import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream
+import io.github.rybalkinsd.kohttp.ext.asyncHttpGet
+import io.github.rybalkinsd.kohttp.ext.httpGet
 import io.javalin.Context
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
@@ -9,6 +12,33 @@ object StreamController {
 
     fun getStreamList(ctx: Context) {
         ctx.result(streamMap.keys.joinToString(", "))
+    }
+
+    fun getThumbnail(ctx: Context) {
+        val streamId: String? = ctx.pathParam("stream-id")
+        val streamUrl = streamMap[streamId]?.getInternalUri()
+
+        when (streamUrl) {
+            null -> ctx.status(400)
+            else -> {
+                val response = streamUrl.replace("m3u8", "png").httpGet()
+                try {
+                    when (response.code()) {
+                        200 -> {
+                            response.body()?.bytes()?.let {
+                                ctx.contentType("image/png")
+                                ctx.result(ByteArrayInputStream(it))
+                            }
+                        }
+                        else -> {
+                            ctx.status(500)
+                        }
+                    }
+                } finally {
+                    response.body()?.close()
+                }
+            }
+        }
     }
 
     fun createStream(ctx: Context) {

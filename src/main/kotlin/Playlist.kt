@@ -62,7 +62,7 @@ abstract class Playlist {
                     }
                 }
 
-                val metadata = PlaylistMetadata(programId ?: continue, bandwidth ?: continue, resolution ?: continue)
+                val metadata = PlaylistMetadata(programId ?: continue, bandwidth ?: continue)
                 playlistDataMap[metadata] = "${url.stub()}/$resource"
             }
 
