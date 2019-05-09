@@ -34,7 +34,7 @@ object Segments {
     }
 
     // Internal FIFO cache
-    private val cache = FIFOCache(capacity = 300)
+    private val cache = FIFOCache(capacity = 50)
 
     // Map segment URLs to future HTTP retrievals
     private val lookupMap = ConcurrentHashMap<String, Deferred<ByteArray?>>()
