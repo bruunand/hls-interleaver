@@ -9,13 +9,13 @@ fun main(args: Array<String>) {
     val app= Javalin.create().server{
         Server().apply {
             connectors = arrayOf(ServerConnector(this).apply {
-                this.host = "relay"
+                this.host = "0.0.0.0"
                 this.port = 7000
             })
         }
     }.start()
 
-    StreamController.addStream("test", Arrays.asList("http://nginx:80/hls/test.m3u8"))
+    StreamController.addStream("test", Arrays.asList("https://envue.me/live/a9d60079b4464dffb88d4e7ec49cdf2e.m3u8"))
 
     app.routes {
         path("relay") {

@@ -108,10 +108,10 @@ abstract class Playlist {
 private fun <E> LinkedList<E>.popOrNull() = if (this.isEmpty()) null else this.pop()
 
 private fun String.getTimestamp(): Long? {
-    val pattern = Pattern.compile("\\d+")
+    val pattern = Pattern.compile("-(\\d+).ts")
     val matcher = pattern.matcher(this)
 
-    return if (matcher.find()) matcher.group().toLong() else null
+    return if (matcher.find()) matcher.group(1).toLong() else null
 }
 
 private fun HttpUrl.stub(): String = with (this.toString()) {

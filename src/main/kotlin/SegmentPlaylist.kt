@@ -34,12 +34,9 @@ class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segm
     // Add new segments to this playlists, i.e. ones with timestamps after the newest clip
     fun addNew(segments: List<Segment>) {
         val newestTimestamp = this.segments.max()?.time ?: 0
-        val newestDuration = (this.segments.lastOrNull()?.duration as? Float)?.let {
-            Math.round(500 * Math.floor(it.toDouble()) )
-        } ?: 0
 
         // Add unseen segments that are newer than the newest segment
-        val newSegments = segments.filter { it.time > newestTimestamp + newestDuration }
+        val newSegments = segments.filter { it.time > newestTimestamp }
         // println("${newSegments.size} new segments")
         this.segments.addAll(newSegments)
     }
