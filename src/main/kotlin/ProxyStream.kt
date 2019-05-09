@@ -29,12 +29,10 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
         return rand.choice(this.endpoints)
     }
 
-    fun addSegmentAlias(source: String, stubUrl: String): String {
-        val fullUrl = "$stubUrl/$source"
-        val hashCode = fullUrl.hashCode().toString()
-        segmentAlias[hashCode] = fullUrl
+    fun addSegmentAlias(alias: String, resource: String): String {
+        segmentAlias[alias] = resource
 
-        return hashCode
+        return alias
     }
 
     fun getSegmentURL(segment: String) = this.segmentAlias.getOrDefault(segment, null)
@@ -54,7 +52,7 @@ class ProxyStream(val name: String, private val endpoints: List<String>) : Playl
 
     fun updatePlaylist() {
         // Enforce a delay between updates
-        if (System.currentTimeMillis() - lastUpdate < 100) {
+        if (System.currentTimeMillis() - lastUpdate < 200) {
             return
         }
 

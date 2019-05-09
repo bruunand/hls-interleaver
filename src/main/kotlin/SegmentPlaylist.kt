@@ -4,7 +4,7 @@ class Segment(val source: String, val identifier: String, val time: Long, val du
 }
 
 class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segment>) : Playlist() {
-    private val maxLength = 5
+    private val maxLength = 4
 
     override fun synthesize(): String {
         val builder = StringBuilder()
@@ -38,7 +38,7 @@ class SegmentPlaylist(private val version: Number?, val segments: ArrayList<Segm
         // Add unseen segments that are newer than the newest segment
         val newSegments = segments.filter { it.time > newestTimestamp }
         // println("${newSegments.size} new segments")
-        this.segments.addAll(newSegments)
+        this.segments.addAll(newSegments.sortedBy { it.time })
     }
 
     companion object {
