@@ -113,8 +113,12 @@ object StreamController {
                 when (segment) {
                     null -> ctx.status(404)
                     else -> {
-                        ctx.result(ByteArrayInputStream(khttp.get(segment).content))
-                        ctx.contentType("application/octet-stream")
+                        segmentCache[segment]?.let {
+                            ctx.result(ByteArrayInputStream(it))
+                            ctx.contentType("application/octet-stream")
+                        } ?: run {
+                            ctx.status(500)
+                        }
                     }
                 }
             }

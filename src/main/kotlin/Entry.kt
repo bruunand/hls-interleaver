@@ -4,10 +4,7 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
 import java.util.*
 
-fun main(args: Array<String>) {
-    println("Running")
-
-    // Start web application
+fun main() {
     val app = Javalin.create().server{
         Server().apply {
             connectors = arrayOf(ServerConnector(this).apply {
@@ -17,8 +14,10 @@ fun main(args: Array<String>) {
         }
     }.start()
 
+    /* Sample relayed stream */
     StreamController.addStream("test", Arrays.asList("http://nginx/hls/test.m3u8"))
 
+    /* Routes */
     app.routes {
         path("relay") {
             get(StreamController::getStreamList)
