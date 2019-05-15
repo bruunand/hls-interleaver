@@ -5,17 +5,19 @@ import org.eclipse.jetty.server.ServerConnector
 import java.util.*
 
 fun main(args: Array<String>) {
+    println("Running")
+
     // Start web application
-    val app= Javalin.create().server{
+    val app = Javalin.create().server{
         Server().apply {
             connectors = arrayOf(ServerConnector(this).apply {
-                this.host = "0.0.0.0"
+                this.host = "relay"
                 this.port = 7000
             })
         }
     }.start()
 
-    StreamController.addStream("test", Arrays.asList("https://envue.me/hls/test.m3u8"))
+    StreamController.addStream("test", Arrays.asList("http://nginx/hls/test.m3u8"))
 
     app.routes {
         path("relay") {

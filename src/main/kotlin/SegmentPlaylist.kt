@@ -1,3 +1,5 @@
+import java.util.*
+
 class Segment(val source: String, val identifier: String, val time: Long, val duration: Number,
               val discontinuity: Boolean = false) : Comparable<Segment> {
     override fun compareTo(other: Segment): Int = time.compareTo(other.time)

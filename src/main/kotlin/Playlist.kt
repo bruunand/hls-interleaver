@@ -21,7 +21,7 @@ abstract class Playlist {
 
         fun parse(parent: ProxyStream, url: HttpUrl, contents: String?): Playlist? {
             if (contents.isNullOrEmpty()) return null
-            val lines = LinkedList(contents.split('\n').filter { !it.isEmpty() })
+            val lines = LinkedList(contents?.split('\n').filter { !it.isEmpty() })
 
             // Parse header
             val header = lines.pop()
