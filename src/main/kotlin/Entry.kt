@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
         }
     }.start()
 
-    StreamController.addStream("test", Arrays.asList("https://envue.me/live/a9d60079b4464dffb88d4e7ec49cdf2e.m3u8"))
+    StreamController.addStream("test", Arrays.asList("https://envue.me/hls/test.m3u8"))
 
     app.routes {
         path("relay") {

@@ -1,3 +1,5 @@
+import java.util.concurrent.TimeUnit
+
 class FIFOCache(capacity: Int) : Cache {
     private val cacheMap = LinkedHashMap<Any, Any>(capacity)
 
