@@ -113,14 +113,11 @@ object StreamController {
                 when (segment) {
                     null -> ctx.status(404)
                     else -> {
-                        runBlocking {
-                            Segments.retrieve(segment)?.let {
-                                ctx.result(ByteArrayInputStream(it))
-                                ctx.contentType("application/octet-stream")
-                            } ?: run {
-                                ctx.status(404)
-                                println("Failed to retrieve segment $segment")
-                            }
+                        segmentCache[segment]?.let {
+                            ctx.result(ByteArrayInputStream(it))
+                            ctx.contentType("application/octet-stream")
+                        } ?: run {
+                            ctx.status(500)
                         }
                     }
                 }

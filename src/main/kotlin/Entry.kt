@@ -4,19 +4,20 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
 import java.util.*
 
-fun main(args: Array<String>) {
-    // Start web application
-    val app= Javalin.create().server{
+fun main() {
+    val app = Javalin.create().server{
         Server().apply {
             connectors = arrayOf(ServerConnector(this).apply {
-                this.host = "0.0.0.0"
+                this.host = "relay"
                 this.port = 7000
             })
         }
     }.start()
 
-    StreamController.addStream("test", Arrays.asList("https://envue.me/live/a9d60079b4464dffb88d4e7ec49cdf2e.m3u8"))
+    /* Sample relayed stream */
+    StreamController.addStream("test", Arrays.asList("http://nginx/hls/test.m3u8"))
 
+    /* Routes */
     app.routes {
         path("relay") {
             get(StreamController::getStreamList)
