@@ -1,21 +1,39 @@
 import io.javalin.Javalin
-import io.javalin.apibuilder.ApiBuilder.get
-import io.javalin.apibuilder.ApiBuilder.path
+import io.javalin.apibuilder.ApiBuilder.*
+import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.ServerConnector
+import java.util.*
 
-fun main(args: Array<String>) {
-    if (args.isEmpty()) return
+fun main() {
+    val app = Javalin.create().server{
+        Server().apply {
+            connectors = arrayOf(ServerConnector(this).apply {
+                this.host = "relay"
+                this.port = 7000
+            })
+        }
+    }.start()
 
-    // Add main stream from args
-    StreamController.addStream("main", args)
+    /* Sample relayed stream */
+    StreamController.addStream("test", Arrays.asList("http://nginx/hls/test.m3u8"))
 
-    // Start web application
-    val app = Javalin.create().enableCorsForOrigin("*").start(8000)
-
+    /* Routes */
     app.routes {
-        path("stream/:stream-id") {
-            get(StreamController::getStream)
-            path(":segment-id") {
-                get(StreamController::getSegment)
+        path("relay") {
+            get(StreamController::getStreamList)
+            path(":stream-id") {
+                path("thumbnail") {
+                    get(StreamController::getThumbnail)
+                }
+                get(StreamController::getStream)
+                post(StreamController::createStream)
+                delete(StreamController::deleteStream)
+                path(":playlist-id") {
+                    get(StreamController::getSubPlaylist)
+                }
+                path("segment/:segment-id") {
+                    get(StreamController::getSegment)
+                }
             }
         }
     }

@@ -1,50 +1,104 @@
 import io.github.rybalkinsd.kohttp.ext.asyncHttpGet
+import io.github.rybalkinsd.kohttp.ext.httpGet
 import kotlinx.coroutines.runBlocking
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.fixedRateTimer
 
-class ProxyStream(val name: String, private val endpoints: Array<String>) {
-    private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
+class ProxyStream(val name: String, private val endpoints: List<String>) : Playlist() {
     private val rand: Random = Random()
-    val internalPlaylist: Playlist = Playlist.empty()
 
-    init {
-        fixedRateTimer(this.name, false, 0L, 1000) {
-            updatePlaylist()
-        }
+    // Keep a mapping from distinct playlist metadata to the associated internal playlists7
+    private val segmentLists: ConcurrentHashMap<PlaylistMetadata, SegmentPlaylist> = ConcurrentHashMap()
+
+    // Furthermore, a mapping is used from string identifiers to playlist metadata
+    private val metadataAliasMap: ConcurrentHashMap<String, PlaylistMetadata> = ConcurrentHashMap()
+
+    // A mapping is used from string identifiers to full segment URLs on the origin server
+    private val segmentAlias: ConcurrentHashMap<String, String> = ConcurrentHashMap()
+
+    private var lastUpdate: Long = 0
+
+    private fun addSubPlaylist(metadata: PlaylistMetadata, playlist: SegmentPlaylist) {
+        segmentLists[metadata] = playlist
+        metadataAliasMap[metadata.toString()] = metadata
     }
 
-    fun addSegmentAlias(source: String, stubUrl: String): String {
-        val fullUrl = "$stubUrl/$source"
-        val hashCode = fullUrl.hashCode().toString()
-        segmentAlias[hashCode] = fullUrl
+    fun getSubPlaylist(metadataIdentifier: String) = segmentLists[metadataAliasMap[metadataIdentifier]]?.synthesize()
 
-        return hashCode
+    fun getInternalUri(): String {
+        return rand.choice(this.endpoints)
+    }
+
+    fun addSegmentAlias(alias: String, resource: String): String {
+        segmentAlias[alias] = resource
+
+        return alias
     }
 
     fun getSegmentURL(segment: String) = this.segmentAlias.getOrDefault(segment, null)
 
-    private fun updatePlaylist() {
+    override fun synthesize(): String {
+        val builder = StringBuilder()
+        builder.appendln("#EXTM3U")
+        builder.appendln("#EXT-X-VERSION:3")
+
+        for ((key, value) in metadataAliasMap) {
+            builder.appendln("#EXT-X-STREAM-INF:PROGRAM-ID=${value.programId},BANDWIDTH=${value.bandwidth}")
+            builder.appendln("${this.name}/$key")
+        }
+
+        return builder.toString()
+    }
+
+    fun updatePlaylist() {
+        // Enforce a delay between updates
+        if (System.currentTimeMillis() - lastUpdate < 200) {
+            return
+        }
+
         val playlists = retrievePlaylists()
-        println("Playlists: ${playlists.size}")
 
-        if (!playlists.isEmpty()) {
-            // Choose a random playlist to extract from
-            val playlist = rand.choice(playlists)
+        // Do nothing if there are no playlists
+        if (playlists.isEmpty()) {
+            return
+        }
 
-            val newestTimestamp = internalPlaylist.segments.max()?.time ?: 0
-            val newestDuration = (internalPlaylist.segments.lastOrNull()?.duration as? Double)?.let {
-                Math.round(1000 * it )
-            } ?: 0
+        val currentPlaylist = this.rand.choice(playlists)
+        when (currentPlaylist) {
+            is MasterPlaylist -> {
+                for ((key, value) in currentPlaylist.metadataMap) {
+                    // Retrieve sub-playlists from this playlist
+                    val playlist = this.retrieveSegmentPlaylist(value) ?: continue
 
-            // Add unseen segments that are newer than the newest segment
-            internalPlaylist.segments.addAll(playlist.segments.filter { it.time >= newestTimestamp + newestDuration })
+                    // Add sub-playlist if it does not exist
+                    if (!segmentLists.containsKey(key)) {
+                        addSubPlaylist(key, SegmentPlaylist.empty())
+                    }
+
+                    // Add new segments
+                    this.segmentLists[key]?.addNew(playlist.segments)
+                }
+            }
+            else -> println("Unknown playlist type ${currentPlaylist::class}")
+        }
+
+        lastUpdate = System.currentTimeMillis()
+    }
+
+    private fun retrieveSegmentPlaylist(url: String): SegmentPlaylist? {
+        val response = url.httpGet()
+
+        try {
+            return parse(this, response.request().url(), response.body()?.string()
+                    ?: return null) as? SegmentPlaylist
+        } finally {
+            response.body()?.close()
         }
     }
 
     private fun retrieveRemotes() = runBlocking {
         val futures = endpoints.map { it.asyncHttpGet() }
+        // TODO: Find out if the async process is started as soon as it is called
         futures.map { it.await() }
     }
 
@@ -53,7 +107,7 @@ class ProxyStream(val name: String, private val endpoints: Array<String>) {
         return remotes.mapNotNull {
             try {
                 when (it.code()) {
-                    200 -> Playlist.parse(this, it.request().url(), it.body()?.string())
+                    200 -> parse(this, it.request().url(), it.body()?.string())
                     else -> null
                 }
             } finally {
